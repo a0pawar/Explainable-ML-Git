@@ -233,3 +233,45 @@ def add_lags(df, lags, columns=None):
     
     return df_with_lags
 
+import pandas as pd
+
+def nested_dict_to_reshaped_df(data):
+    """
+    Flatten a nested dictionary and reshape it into a multi-level indexed DataFrame.
+    
+    Parameters:
+    data (dict): Nested dictionary to be flattened and reshaped.
+    
+    Returns:
+    pd.DataFrame: Reshaped DataFrame with multi-level indices.
+    """
+    # Step 1: Flatten the nested dictionary
+    flattened = []
+    for key1, val1 in data.items():
+        for key2, val2 in val1.items():
+            for key3, val3 in val2.items():
+                flattened.append([key1, key2, key3, val3])
+    
+    # Step 2: Create DataFrame and set multi-level index
+    df = pd.DataFrame(flattened, columns=['Level1', 'Level2', 'Level3', 'Value'])
+    df = df.set_index(['Level1', 'Level2', 'Level3'])
+    
+    # Step 3: Unstack and reshape the DataFrame to desired structure
+    reshaped_df = df.unstack(level=[1, 2])
+    
+    # Step 4: Melt and pivot to create a structured long format
+    melted_df = reshaped_df.T.reset_index().melt(id_vars=['Level2', 'Level3'], 
+                                                 var_name='Level1', 
+                                                 value_name='Value')
+    reshaped_df = melted_df.pivot(index=['Level1', 'Level2'], 
+                                  columns='Level3', 
+                                  values='Value')
+
+    # Optional: Sort index levels if needed
+    reshaped_df = reshaped_df.sort_index(level=[0,1])
+
+    # Optional: Rename index levels for clarity
+    reshaped_df.index.names = ['Level1', 'Level2']
+    reshaped_df.columns.name = 'Level3'
+    
+    return reshaped_df
